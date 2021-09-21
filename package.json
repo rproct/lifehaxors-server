@@ -1,34 +1,28 @@
 {
   "name": "lifehaxors-server",
-  "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
+  "version": "0.0.0",
+  "private": true,
   "scripts": {
     "start": "nodemon"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://rydproctor@dev.azure.com/rydproctor/lifehaxors-server/_git/lifehaxors-server"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "cookie-parser": "^1.4.5",
+    "constantinople": "^4.0.1",
+    "cookie-parser": "~1.4.5",
     "cors": "^2.8.5",
-    "debug": "^4.3.2",
-    "express": "^4.17.1",
+    "debug": "~4.3.2",
+    "express": "~4.17.1",
     "glob": "^7.1.7",
-    "http-errors": "^1.8.0",
+    "http-errors": "~1.8.0",
+    "jade": "~1.11.0",
     "jstransformer": "^1.0.0",
-    "morgan": "^1.10.0",
+    "morgan": "~1.10.0",
     "pug": "^3.0.2",
     "reflect-metadata": "^0.1.13",
     "socket-controllers": "0.0.5",
     "socket.io": "^4.2.0"
   },
   "devDependencies": {
-    "@types/node": "^16.9.1",
+    "@types/node": "^16.9.4",
     "nodemon": "^2.0.12",
     "ts-node": "^10.2.1",
     "typescript": "^4.4.3"
