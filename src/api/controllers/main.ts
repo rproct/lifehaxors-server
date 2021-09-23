@@ -26,7 +26,7 @@ export class MainControl {
     @OnConnect()
     public onConnection(
         @ConnectedSocket() socket: Socket,
-        @SocketIO() io: Server    
+        @SocketIO() io: Server
     ){
         console.log(`Socket ID ${socket.id} connected`);
     }
@@ -61,7 +61,6 @@ export class MainControl {
         // const socketRooms = Array.from(socket.rooms.values()).filter(
         //     (r) => r !== socket.id
         // );
-        
         // if(socketRooms.length > 0 || (connected && (connected.size === 0 || connected.size === 8))){
         const room = roomList.find(r => r.roomID === message.roomID);
         if(room.userList.length === 0 || room.userList.length === 8){
@@ -75,6 +74,18 @@ export class MainControl {
             socket.emit("roomJoined", {code: message.roomID});
             console.log(JSON.stringify(currentRoom))
         }
+    }
+
+    @OnMessage("submitQuestion")
+    public async submitQuestion(
+        @SocketIO() io: Server,
+        @ConnectedSocket() socket: Socket,
+        @MessageBody() message: any
+    ){
+        io.in(this.getRoom(socket).roomID).emit("getQuestion", {
+            id: socket.id,
+            question: message.question
+        })
     }
 
     @OnDisconnect()
