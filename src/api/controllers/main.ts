@@ -46,9 +46,10 @@ export class MainControl {
         // }
         await socket.join(roomID);
         let nRoom: IRoom = {roomID: roomID, userList: [{id: socket.id, name: message.name}]};
-        roomList.push(nRoom);
+        let index = roomList.push(nRoom) - 1;
         console.log(`Joined ${roomID}`);
-        socket.emit("roomJoined", {code: roomID});
+        socket.emit("joinedSuccess");
+        io.in(roomID).emit("updateRoom", roomList[index]);
     }
 
     @OnMessage("joinRoom")
@@ -71,7 +72,8 @@ export class MainControl {
             let nUser: IUser = {id: socket.id, name: message.name};
             const currentRoom = roomList.find(room => room.roomID === message.roomID);
             currentRoom.userList.push(nUser);
-            socket.emit("roomJoined", {code: message.roomID});
+            socket.emit("joinedSuccess");
+            io.in(currentRoom.roomID).emit("updateRoom", currentRoom);
             console.log(JSON.stringify(currentRoom))
         }
     }
@@ -94,6 +96,7 @@ export class MainControl {
         for(let i = 0; i < room.userList.length; i++)
             if(room.userList[i].id === socket.id){
                 room.userList.splice(i, 1);
+                socket.to(roomList[i].roomID).emit("updateRoom", roomList[i]);
                 break;
             }
         console.log(JSON.stringify(room));
