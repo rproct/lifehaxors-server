@@ -8,6 +8,7 @@ import {
     OnDisconnect
 } from 'socket-controllers';
 import {Socket, Server} from 'socket.io';
+import socket from '../../socket';
 
 interface IUser{
     id: string;
@@ -16,6 +17,7 @@ interface IUser{
 
 interface IRoom{
     roomID: string;
+    lock: boolean;
     userList: IUser[];
 }
 
@@ -45,7 +47,7 @@ export class MainControl {
             console.log(roomID);
         // }
         await socket.join(roomID);
-        let nRoom: IRoom = {roomID: roomID, userList: [{id: socket.id, name: message.name}]};
+        let nRoom: IRoom = {roomID: roomID, lock: false, userList: [{id: socket.id, name: message.name}]};
         let index = roomList.push(nRoom) - 1;
         console.log(`Joined ${roomID}`);
         socket.emit("joinedSuccess");
@@ -64,8 +66,17 @@ export class MainControl {
         // );
         // if(socketRooms.length > 0 || (connected && (connected.size === 0 || connected.size === 8))){
         const room = roomList.find(r => r.roomID === message.roomID);
-        if(room.userList.length === 0 || room.userList.length === 8){
-            socket.emit("joinRoomErr", {error: "Room is full or does not exist."});
+        if(room === undefined || room.userList.length === 0){
+            socket.emit("joinRoomErr", {error: "Room does not exist."});
+            console.log({error: "Room does not exist."})
+        }
+        else if(room.userList.length === 8){
+            socket.emit("joinRoomErr", {error: "Room is full, please pick another room."});
+            console.log({error: "Room is full, please pick another room."})
+        }
+        else if(room.lock){
+            socket.emit("joinRoomErr", {error: "Room is currently in an active game."});
+            console.log({error: "Room is currently in an active game."})
         }
         else{
             await socket.join(message.roomID);
@@ -78,16 +89,74 @@ export class MainControl {
         }
     }
 
-    @OnMessage("submitQuestion")
+    @OnMessage("sendTemplate")
+    public async sendTemplate(
+        @SocketIO() io: Server,
+        @ConnectedSocket() socket: Socket
+    ){
+        const questions = require('../data/questionTemplates.json');
+        const rand = questions[Math.floor(Math.random() * questions.length)];
+        socket.emit("receiveTemplate", rand);
+    }
+
+    @OnMessage("sendQuestion")
     public async submitQuestion(
         @SocketIO() io: Server,
         @ConnectedSocket() socket: Socket,
         @MessageBody() message: any
     ){
-        io.in(this.getRoom(socket).roomID).emit("getQuestion", {
+        io.in(this.getRoom(socket).roomID).emit("receiveQuestion", {
             id: socket.id,
             question: message.question
         })
+    }
+
+    @OnMessage("generatePairs")
+    public async generatePairs(
+        @SocketIO() io: Server,
+        @ConnectedSocket() socket: Socket
+    ){
+        const room = this.getRoom(socket);
+        const senders = [].concat(room.userList);
+        const recipients = [].concat(room.userList);
+        const pairs = [];
+        while(senders.length > 0 && recipients.length > 0){
+            let s = Math.floor(Math.random() * senders.length);
+            let r = Math.floor(Math.random() * recipients.length);
+            if(senders[s] !== recipients[r]){
+                const newPair = {sendID: senders[s].id, recipID: recipients[r].id};
+                pairs.push(newPair);
+                senders.splice(s, 1);
+                recipients.splice(r, 1);
+            }
+        }
+        for(let i = 0; i < pairs.length; i++)
+            io.to(pairs[i].sendID).emit("getPair", {recipient: pairs[i].recipID});
+    }
+
+    @OnMessage("sendList")
+    public async sendList(
+        @SocketIO() io: Server,
+        @ConnectedSocket() socket: Socket,
+        @MessageBody() message: any
+    ){
+        io.in(this.getRoom(socket).roomID).emit("receiveList", 
+        {
+            id: socket.id,
+            list: message.list,
+            recipient: message.recipient
+        })
+    }
+
+    @OnMessage("startGame")
+    public async broadcastStart(
+        @SocketIO() io: Server,
+        @ConnectedSocket() socket: Socket
+    ){
+        console.log("Message received")
+        const room = this.getRoom(socket);
+        if(room)
+            io.in(room.roomID).emit("toggleStart");
     }
 
     @OnDisconnect()
@@ -96,7 +165,7 @@ export class MainControl {
         for(let i = 0; i < room.userList.length; i++)
             if(room.userList[i].id === socket.id){
                 room.userList.splice(i, 1);
-                socket.to(roomList[i].roomID).emit("updateRoom", roomList[i]);
+                socket.to(room.roomID).emit("updateRoom", room);
                 break;
             }
         console.log(JSON.stringify(room));
