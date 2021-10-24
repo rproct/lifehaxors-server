@@ -19,6 +19,7 @@ interface IRoom{
     roomID: string;
     lock: boolean;
     userList: IUser[];
+    houseItems: string[];
 }
 
 const roomList = Array<IRoom>();
@@ -44,14 +45,13 @@ export class MainControl {
             roomID = '';
             for(let i = 0; i < 4; i++)
                 roomID += String.fromCharCode(Math.random() * (90 - 65) + 65);
-            console.log(roomID);
         // }
         await socket.join(roomID);
-        let nRoom: IRoom = {roomID: roomID, lock: false, userList: [{id: socket.id, name: message.name}]};
+        let nRoom: IRoom = {roomID: roomID, lock: false, userList: [{id: socket.id, name: message.name}], houseItems: []};
         let index = roomList.push(nRoom) - 1;
-        console.log(`Joined ${roomID}`);
         socket.emit("joinedSuccess");
         io.in(roomID).emit("updateRoom", roomList[index]);
+        console.log(nRoom);
     }
 
     @OnMessage("joinRoom")
@@ -85,7 +85,6 @@ export class MainControl {
             currentRoom.userList.push(nUser);
             socket.emit("joinedSuccess");
             io.in(currentRoom.roomID).emit("updateRoom", currentRoom);
-            console.log(JSON.stringify(currentRoom))
         }
     }
 
@@ -134,18 +133,47 @@ export class MainControl {
             io.to(pairs[i].sendID).emit("getPair", {recipient: pairs[i].recipID});
     }
 
-    @OnMessage("sendList")
-    public async sendList(
+    @OnMessage("addListItems")
+    public async addListItems(
         @SocketIO() io: Server,
         @ConnectedSocket() socket: Socket,
         @MessageBody() message: any
     ){
-        io.in(this.getRoom(socket).roomID).emit("receiveList", 
-        {
-            id: socket.id,
-            list: message.list,
-            recipient: message.recipient
+        const room = this.getRoom(socket);
+        message.houseItems.forEach((item) => {
+            room.houseItems.push(item)
         })
+        io.in(room.roomID).emit("playerReady", {data: room.houseItems.length / 6})
+    }
+
+    @OnMessage("appendListToQuestions")
+    public async appendListToQuestions(
+        @SocketIO() io: Server,
+        @ConnectedSocket() socket: Socket
+    ){
+        const room = this.getRoom(socket);
+        const players = room.userList;
+        players.sort(() => Math.random() - 0.5);
+        let list = [].concat(room.houseItems)
+        room.houseItems = [];
+        const dist = [];
+        for(let i = 0; i < players.length; i++){
+            list.sort(() => Math.random() - 0.5)
+            dist.push({id: players[i].id, items: list.slice(0, 6)});
+            list = list.slice(6);
+        }
+        io.in(room.roomID).emit("setQuestionList", {dist: dist})
+    }
+
+    @OnMessage("getOrder")
+    public async getOrder(
+        @SocketIO() io: Server,
+        @ConnectedSocket() socket: Socket
+    ){
+        const room = this.getRoom(socket);
+        const players = room.userList;
+        players.sort(() => Math.random() - 0.5);
+        io.in(room.roomID).emit("generateOrder", {order: players})
     }
 
     @OnMessage("startGame")
@@ -153,7 +181,6 @@ export class MainControl {
         @SocketIO() io: Server,
         @ConnectedSocket() socket: Socket
     ){
-        console.log("Message received")
         const room = this.getRoom(socket);
         if(room)
             io.in(room.roomID).emit("toggleStart");
@@ -168,7 +195,6 @@ export class MainControl {
                 socket.to(room.roomID).emit("updateRoom", room);
                 break;
             }
-        console.log(JSON.stringify(room));
         if(room.userList.length === 0)
             for(let i = 0; i < roomList.length; i++)
                 if(roomList[i].roomID === room.roomID){
