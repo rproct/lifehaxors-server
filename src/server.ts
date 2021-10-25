@@ -14,7 +14,7 @@
   * Get port from environment and store in Express.
   */
  
- var port = normalizePort(process.env.PORT || "9000");
+ var port = normalizePort(process.env.PORT || 9000);
  app.set("port", port);
  
  /**
