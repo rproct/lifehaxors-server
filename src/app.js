@@ -7,7 +7,7 @@ var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 var cors = require("cors");
 require("reflect-metadata");
-var indexRouter = require("./routes/index.js");
+var indexRouter = require("./routes/index");
 var app = express();
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));

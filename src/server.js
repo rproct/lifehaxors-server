@@ -5,10 +5,10 @@
  */
 exports.__esModule = true;
 require("reflect-metadata");
-var app_1 = require("./app.js");
+var app_1 = require("./app");
 var debug = require("debug")("socketio-server:server");
 var http = require("http");
-var socket_1 = require("./socket.js");
+var socket_1 = require("./socket");
 /**
  * Get port from environment and store in Express.
  */
