@@ -1,8 +1,14 @@
 {
-    "compilerOptions": {
-      "experimentalDecorators": true,
-      "noImplicitAny": false,
-      "emitDecoratorMetadata": true
-    }
-  }
-  
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "noImplicitAny": false,
+    "emitDecoratorMetadata": true
+  },
+  "include": [
+    "**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ]
+}
