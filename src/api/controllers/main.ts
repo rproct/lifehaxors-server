@@ -186,6 +186,17 @@ export class MainControl {
             io.in(room.roomID).emit("toggleStart");
     }
 
+    @OnMessage("sendAnswer")
+    public async sendAnswer(
+        @SocketIO() io: Server,
+        @ConnectedSocket() socket: Socket,
+        @MessageBody() message: any
+    ){
+        const room = this.getRoom(socket);
+        if(room)
+            io.in(room.roomID).emit("receiveAnswer", {data: message})
+    }
+
     @OnDisconnect()
     public async disconnect(@ConnectedSocket() socket: Socket) {
         const room = this.getRoom(socket);
